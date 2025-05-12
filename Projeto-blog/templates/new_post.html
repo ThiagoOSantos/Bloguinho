@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novo Post</title>
+</head>
+<body>
+    <h2>Criar Novo Post</h2>
+    <form method="POST">
+        Titulo: <input type="text" name="titulo" required><br>
+        Conteudo:<br>
+        <textarea name="conteudo" rows="5" cols="40" required></textarea><br>
+        Imagem (opcional): <input type="file" name="imagem"><br><br>
+        <button type="submit">Publicar</button>
+    </form>
+    <a href="{{ url_for('dashboard')}}">Voltar</a>
+</body>
+</html>

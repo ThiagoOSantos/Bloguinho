@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashb.</title>
+</head>
+<body>
+    <h2>Meus Posts</h2>
+    <a href="{{ url_for('new_post') }}">Novo Post</a>
+ <!--   <a href="{{ url_for('logout') }}">Sair</a> -->
+
+    {%for post in posts%}
+    <div class="post">
+        <h2>{{ post.titulo }}</h2>
+        <p>{{ post.conteudo }}</p>
+        {% if post.imagem %}
+        <img src="{{ url_for('static', filename= 'uploads/' + post.imagem)}}" width="300">
+        {% endif %}
+        <hr>
+    </div>
+    {% endfor %}
+</body>
+</html>
