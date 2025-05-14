@@ -77,7 +77,95 @@ def index():
     posts = db.execute('''
         SELECT p.titulo, p.conteudo, p.imagem, u.nome FROM posts p
         JOIN usuarios u ON p.autor_id = u.id
-''')
+''').fetchall()
 #--------------------- Rota Registro de Usuario ----------------------------------------       
 
 @app.route('/register', methods=['GET', 'POST'])
+def register():
+    #Exibir o formulario de cadastro e processar os dados enviados.
+    if request.method == 'POST':
+        nome = request.form['nome']
+        cpf = request.form['cpf']
+        email = request.form['email']
+        senha = request.form['senha']
+        #validar se a senha digitada possui no minimo 8 caracteres, 1 maiuscula, 1 numero e 1 simbolo
+        if len(senha) <8:
+            return "Senha fraca. Requisitos: 8+ caracteres, 1 maiuscula, 1 número e 1 símbolo"
+        db = get_db()
+        try:
+            db.execute('INSERT INTO usuarios (nome, cpf, email, senha) VALUES (?,?,?,?)', (nome, cpf, email, senha))
+            db.commit()
+            return redirect(url_for('login'))
+        except sqlite3.IntegrityError:
+            return "Error: CPF ou Email já cadastrados."
+    return render_template('register.html')
+
+#--------------------- Rota de Login ----------------------------------------       
+
+@app.route('/login', methods=('GET', 'POST'))
+def login():
+    #Exibir e processar o formulario de login
+    if request.method == 'POST':
+        email = request.form['email']
+        senha = request.form['senha']
+        db = get_db()
+        usuario = db.execute('SELECT * FROM usuarios WHERE email=? AND senha=?', (email, senha).fetchone())
+        if usuario:
+            session['usuario_id'] = usuario['id']#A sessão vai servir para identificar aquele usuario enquanto ele estiver logado e usando a aplicação
+            session['usuario_nome'] = usuario['nome']
+            return redirect(url_for('dashboard'))
+        else:
+            return "Login inválido"
+    return render_template('login.html')
+
+#--------------------- Painel do Usuario ----------------------------------------       
+
+@app.route('/dashboard')
+#Exibir os posts do usuario logado.
+def dashboard():
+    if 'usuario.id' not in session:
+        return redirect(url_for('login'))
+    
+    db = get_db()
+    posts = db.execute('SELECT * FROM posts WHERE autor_id=?', (session['usuario_id'])).fetchall() #Vai buscar dentro do banco de dados os posts do usuario q estiver logado
+    return render_template('dashboard.html', posts=posts)
+
+#--------------------- Rota para Criar Novo Post ----------------------------------------       
+
+@app.route('/new_post', methods=['GET', 'POST'])
+def new_post():
+    #Permitir que o usuario logado crie um novo post com ou sem imagem
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        titulo = request.form['titulo']
+        conteudo = request.form['conteudo']
+        imagem = request.form['imagem']
+
+        nome_arquivo = None
+        if imagem and extensao_valida(imagem.filename):
+            nome_arquivo = secure_filename(imagem.filename)
+            imagem.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_arquivo))
+        
+        db = get_db()
+        db.execute('INSERT INTO posts (titulo, conteudo, imagem, autor_id) VALUES(?,?,?,?)', (titulo, conteudo, nome_arquivo, session['usuario_id']))
+        db.commit()
+        return redirect(url_for('dashboard'))
+    
+    return render_template('new_post.html')
+    
+#--------------------- Rota para Logout ----------------------------------------       
+
+@app.route('/logout')
+def logout():
+    #Remove o usuario da sessão atual
+    session.clear()
+    return redirect(url_for('index'))    
+
+#--------------------- Rota para execução principal ----------------------------------------       
+
+if __name__ == '__main__':
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok = True) #Cria a pasta uploads se ela não existir
+    inicializar_banco() #Garante que o banco e tabelas sejam criados
+    app.run(debug = True)
